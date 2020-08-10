@@ -44,90 +44,32 @@ export const getShopifyProducts = (productCount, variantCount) => {
 //#region > Checkout functions
 // Initializes Shopify checkout
 export const initShopify = (getNew) => {
-  return (dispatch, getState, { clientShopify, getFirebase }) => {
-    const firebase = getFirebase();
-    const uid = firebase.auth().currentUser?.uid;
+  return (dispatch, getState, { clientShopify }) => {
     // Get saved checkout in local storage
     const checkout = JSON.parse(localStorage.getItem("checkout"));
 
-    // Check if logged in
-    if (uid) {
-      const user = getState().firebase.profile;
+    if (!checkout || getNew) {
+      // Create Shopify checkout
+      clientShopify
+        .mutate({
+          mutation: createCheckout,
+          variables: {
+            input: {},
+          },
+        })
+        .then((res) => {
+          saveCheckout(res.data.checkoutCreate.checkout);
 
-      if (user) {
-        if (!checkout || getNew) {
-          console.log("creating new checkout");
-
-          // Create Shopify checkout
-          clientShopify
-            .mutate({
-              mutation: createCheckout,
-              variables: {
-                input: {
-                  email: "",
-                  shippingAddress: {},
-                },
-              },
-            })
-            .then((res) => {
-              saveCheckout(res.data.checkoutCreate.checkout);
-
-              if (res.data.checkoutCreate.checkout) {
-                dispatch({
-                  type: "CREATECHECKOUT_SUCCESS",
-                  payload: { data: res.data.checkoutCreate.checkout },
-                });
-              } else {
-                // Create checkout without shipping information
-                clientShopify
-                  .mutate({
-                    mutation: createCheckout,
-                    variables: {
-                      email: user.email,
-                      input: {},
-                    },
-                  })
-                  .then((res) => {
-                    saveCheckout(res.data.checkoutCreate.checkout);
-
-                    dispatch({
-                      type: "CREATECHECKOUT_SUCCESS",
-                      payload: { data: res.data.checkoutCreate.checkout },
-                    });
-                  });
-              }
-            });
-        } else {
           dispatch({
             type: "CREATECHECKOUT_SUCCESS",
-            payload: { data: checkout },
+            payload: { data: res.data.checkoutCreate.checkout },
           });
-        }
-      }
-    } else {
-      if (!checkout || getNew) {
-        // Create Shopify checkout
-        clientShopify
-          .mutate({
-            mutation: createCheckout,
-            variables: {
-              input: {},
-            },
-          })
-          .then((res) => {
-            saveCheckout(res.data.checkoutCreate.checkout);
-
-            dispatch({
-              type: "CREATECHECKOUT_SUCCESS",
-              payload: { data: res.data.checkoutCreate.checkout },
-            });
-          });
-      } else {
-        dispatch({
-          type: "CREATECHECKOUT_SUCCESS",
-          payload: { data: checkout },
         });
-      }
+    } else {
+      dispatch({
+        type: "CREATECHECKOUT_SUCCESS",
+        payload: { data: checkout },
+      });
     }
   };
 };
@@ -237,49 +179,6 @@ export const removeLineItemInCart = (lineItemId, checkoutId) => {
           type: "REMOVELINEITEM_SUCCESS",
           payload: { data: checkout },
         });
-      });
-  };
-};
-
-// Gets line items from the database
-export const getLineItems = () => {
-  return (dispatch, getState, { getFirebase, getFirestore }) => {
-    const firestore = getFirestore();
-    const firebase = getFirebase();
-
-    const uid = firebase.auth().currentUser.uid;
-
-    return firestore
-      .collection("users")
-      .document(uid)
-      .get()
-      .then(function (res) {
-        // console.log(res.data());
-        // return res.data();
-      })
-      .catch(function () {
-        return false;
-      });
-  };
-};
-
-// Gets line items from the database
-export const addLineItems = (lineItems, overwrite) => {
-  return (dispatch, getState, { getFirebase, getFirestore }) => {
-    const firestore = getFirestore();
-    const firebase = getFirebase();
-
-    const uid = firebase.auth().currentUser.uid;
-
-    return firestore
-      .collection("users")
-      .document(uid)
-      .set({ lineItems }, { merge: overwrite ? false : true })
-      .then(() => {
-        // console.log("added data");
-      })
-      .catch(function () {
-        return false;
       });
   };
 };
