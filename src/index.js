@@ -24,7 +24,11 @@ import "./index.scss";
 // Root component
 import App from "./App";
 
-import registerServiceWorker from "./registerServiceWorker";
+//> Apollo
+import { ApolloClient } from "apollo-client";
+import { createHttpLink } from "apollo-link-http";
+import { setContext } from "apollo-link-context";
+import { InMemoryCache } from "apollo-cache-inmemory";
 
 //> Redux
 // Store, Middleware, Compose
@@ -48,6 +52,24 @@ import fbInit from "./config/fbInit";
 //#endregion
 
 //#region > Config
+//> Shopify API
+// API Link
+const httpLinkShopify = createHttpLink({
+  uri: `https://${process.env.REACT_APP_SHOP}.myshopify.com//api/graphql`,
+});
+// Storefront access token
+const middlewareLinkShopify = setContext(() => ({
+  headers: {
+    "X-Shopify-Storefront-Access-Token": process.env.REACT_APP_STOREFRONT_TOKEN,
+  },
+}));
+
+// Apollo Client
+const clientShopify = new ApolloClient({
+  link: middlewareLinkShopify.concat(httpLinkShopify),
+  cache: new InMemoryCache(),
+});
+
 /**
  * FIREBASE INIT SETTINGS
  */
@@ -58,7 +80,7 @@ const syncUserToAuth = true;
  * The name of the collection can vary from project to project. Check Firebase for information.
  * This tells Redux Firebase where the users are being stored.
  */
-const userCollection = "partners";
+const userCollection = "users";
 // Enable firebase initializing before DOM rendering
 const onlyLoadWhenReady = true;
 // Create Redux data-store and store it in store and apply thunk middleware
@@ -67,8 +89,12 @@ const store = createStore(
   compose(
     applyMiddleware(
       thunk.withExtraArgument({
-        getFirebase, // Firebase
-        getFirestore, // Cloud Firestore Database
+        /* Firebase binding */
+        getFirebase,
+        /* Cloud Firestore Database binding */
+        getFirestore,
+        /* Shopify Storefront binding */
+        clientShopify,
       })
     ),
     reduxFirestore(fbInit),
@@ -91,7 +117,6 @@ store.firebaseAuthIsReady.then(() => {
     </Provider>,
     document.getElementById("root")
   );
-  registerServiceWorker();
 });
 //#endregion
 
