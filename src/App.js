@@ -5,6 +5,13 @@ import React from "react";
 // DOM bindings for React Router
 import { BrowserRouter as Router } from "react-router-dom";
 
+//> Redux
+// Connect
+import { connect } from "react-redux";
+// Actions
+import { initShopify } from "./store/actions/shopifyActions";
+import { checkCookies } from "./store/actions/analyticsActions";
+
 //> Components
 /**
  * Footer: Global Footer
@@ -20,29 +27,22 @@ import Routes from "./Routes";
 
 //#region > Components
 class App extends React.Component {
+  state = {};
+
   componentDidMount = () => {
-    this.checkCookies();
+    // Initialize Shopify
+    this.props.initShopify();
+    // Initialize analytics
+    this.props.checkCookies();
   };
 
   saveCookie = () => {
-    this.checkCookies();
-  };
-
-  checkCookies = () => {
-    // Create custom user id for tracking
-    let userId = localStorage.getItem("userId");
-
-    if (!userId) {
-      const sha256 = require("js-sha256");
-
-      userId = sha256.create();
-      localStorage.setItem("userId", userId);
-    }
+    this.props.checkCookies();
   };
 
   render() {
     return (
-      <Router>
+      <Router basename={process.env.PUBLIC_URL}>
         <ScrollToTop>
           <div className="flyout">
             <Navbar />
@@ -59,8 +59,23 @@ class App extends React.Component {
 }
 //#endregion
 
+//#region > Functions
+const mapStateToProps = (state) => {
+  return {
+    checkout: state.shop.checkout,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    initShopify: () => dispatch(initShopify()),
+    checkCookies: () => dispatch(checkCookies()),
+  };
+};
+//#endregion
+
 //#region > Exports
-export default App;
+export default connect(mapStateToProps, mapDispatchToProps)(App);
 //#endregion
 
 /**
