@@ -57,6 +57,7 @@ import fbInit from "./config/fbInit";
 const httpLinkShopify = createHttpLink({
   uri: `https://${process.env.REACT_APP_SHOP}.myshopify.com//api/graphql`,
 });
+
 // Storefront access token
 const middlewareLinkShopify = setContext(() => ({
   headers: {
